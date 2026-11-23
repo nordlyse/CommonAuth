@@ -1,0 +1,176 @@
+{
+  "realm": "common",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "accessTokenLifespan": 3600,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "clients": [
+    {
+      "clientId": "portal",
+      "name": "CommonAuth portal",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "portal-secret",
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": true,
+      "redirectUris": [
+        "http://common.localhost/login/callback"
+      ],
+      "webOrigins": [
+        "http://common.localhost"
+      ],
+      "attributes": {
+        "post.logout.redirect.uris": "http://common.localhost/*"
+      }
+    },
+    {
+      "clientId": "exchange",
+      "name": "Token exchange",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "exchange-secret",
+      "protocol": "openid-connect",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "fullScopeAllowed": true,
+      "redirectUris": [
+        "http://common.localhost/*"
+      ],
+      "webOrigins": [
+        "http://common.localhost"
+      ]
+    },
+    {
+      "clientId": "sharkord",
+      "name": "Sharkord",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "sharkord-secret",
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "fullScopeAllowed": true,
+      "redirectUris": [
+        "http://common.localhost/sharkord/*"
+      ],
+      "webOrigins": [
+        "http://common.localhost"
+      ]
+    },
+    {
+      "clientId": "crm",
+      "name": "CRM",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "crm-secret",
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "fullScopeAllowed": true,
+      "redirectUris": [
+        "http://common.localhost/crm/*",
+        "http://common.localhost/crm-api/*",
+        "http://common.localhost/api/auth/*"
+      ],
+      "webOrigins": [
+        "http://common.localhost"
+      ]
+    },
+    {
+      "clientId": "clearflask",
+      "name": "ClearFlask",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "clearflask-secret",
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "fullScopeAllowed": true,
+      "redirectUris": [
+        "http://common.localhost/clearflask/*"
+      ],
+      "webOrigins": [
+        "http://common.localhost"
+      ]
+    },
+    {
+      "clientId": "alexandrie",
+      "name": "Alexandrie",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "alexandrie-secret",
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "fullScopeAllowed": true,
+      "redirectUris": [
+        "http://common.localhost/alexandrie/*"
+      ],
+      "webOrigins": [
+        "http://common.localhost"
+      ]
+    },
+    {
+      "clientId": "mentingo",
+      "name": "Mentingo",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "mentingo-secret",
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "fullScopeAllowed": true,
+      "redirectUris": [
+        "http://common.localhost/mentingo/*"
+      ],
+      "webOrigins": [
+        "http://common.localhost"
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "demo",
+      "enabled": true,
+      "email": "demo@common.localhost",
+      "emailVerified": true,
+      "firstName": "Demo",
+      "lastName": "User",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "demo",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "admin",
+      "enabled": true,
+      "email": "admin@common.localhost",
+      "emailVerified": true,
+      "firstName": "Admin",
+      "lastName": "User",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin",
+          "temporary": false
+        }
+      ]
+    }
+  ]
+}

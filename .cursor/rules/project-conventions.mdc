@@ -1,0 +1,39 @@
+---
+description: Licences, git identity, English text, and the add/insert wording rule
+alwaysApply: true
+---
+
+# Project conventions
+
+These apply to every change in this repository. Check them again before each push.
+
+## Licences
+
+Third-party libraries, tools, and runtime dependencies must be MIT or Apache-2.0 only. If a needed library is not MIT or Apache-2.0, pick an MIT or Apache-2.0 alternative or ask.
+
+## Git identity
+
+Pushes go out only as nordlyse. Author and committer must be Jakob Lyse <jakob.lyse@gmail.com>.
+
+Before every push, check the commits that would be sent:
+
+- `git log` author and committer are Jakob Lyse <jakob.lyse@gmail.com>
+- No `Co-authored-by` trailer for Cursor, cursoragent, or any other agent
+- No other GitHub identity in author, committer, or trailers
+
+If another identity is present, strip it before the push. Do not push until the check passes.
+
+## Language
+
+Comments, class names, `README.md`, docs, and other written text are English.
+
+## Wording
+
+Do not use the word "create" in method names, class names, comments, `README.md`, docs, or commit messages. Use "add" or "insert" instead.
+
+```java
+// Avoid: createUser, UserCreator
+// Use: addUser, insertUser
+```
+
+A framework API that requires that word may stay, for example `document.createElement` or `Files.createDirectories`.

@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CommonAuth</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1c1915;
+      --muted: #5c564c;
+      --line: #d9d3c7;
+      --paper: #f4f1ea;
+      --card: #fffdf8;
+      --accent: #0f6e56;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      font: 16px/1.45 "Iowan Old Style", Palatino, Georgia, serif;
+      color: var(--ink);
+      background: var(--paper);
+    }
+    header {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--line);
+      background: var(--card);
+    }
+    h1 { margin: 0; font-size: 22px; font-weight: 650; }
+    p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+    a.button, button {
+      font: inherit;
+      border: 1px solid var(--accent);
+      background: var(--accent);
+      color: white;
+      border-radius: 999px;
+      padding: 8px 14px;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    button.secondary, a.secondary {
+      background: transparent;
+      color: var(--accent);
+    }
+    button[aria-pressed="true"] { outline: 2px solid var(--ink); }
+    nav { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 20px; }
+    #notice { margin: 0 20px; color: #8a3b12; min-height: 0; }
+    iframe {
+      flex: 1;
+      width: 100%;
+      border: 0;
+      border-top: 1px solid var(--line);
+      background: white;
+    }
+    #welcome { padding: 28px 20px; max-width: 42rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>CommonAuth</h1>
+      <p id="status">One sign-in for every system on this host.</p>
+    </div>
+    <div id="account"></div>
+  </header>
+  <nav id="links" hidden></nav>
+  <p id="notice"></p>
+  <section id="welcome">
+    <p>Different applications use the same token. After sign-in, a value on that token can be added, removed, or changed, and the systems on this page keep using it.</p>
+    <p>Account <strong>demo</strong> / <strong>demo</strong>, or <strong>admin</strong> / <strong>admin</strong>.</p>
+  </section>
+  <iframe id="system-frame" title="Selected system" hidden></iframe>
+  <script>
+    const account = document.getElementById("account");
+    const links = document.getElementById("links");
+    const notice = document.getElementById("notice");
+    const welcome = document.getElementById("welcome");
+    const frame = document.getElementById("system-frame");
+    const status = document.getElementById("status");
+    let currentSession = null;
+
+    function escapeText(value) {
+      return String(value).replace(/[&<>"']/g, function (ch) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch];
+      });
+    }
+
+    function showNotice(text) {
+      notice.textContent = text || "";
+    }
+
+    const scopeReady = ("serviceWorker" in navigator)
+      ? navigator.serviceWorker.register("/prefix-scope.js?v=18").then(function () { return navigator.serviceWorker.ready; })
+      : Promise.resolve();
+
+    async function openSystem(item, button) {
+      await scopeReady;
+      showNotice("");
+      const response = await fetch("/exchange/audiences/" + encodeURIComponent(item.id), { method: "POST" });
+      const payload = await response.json().catch(function () { return {}; });
+      if (!response.ok) {
+        showNotice(payload.detail || "Token exchange failed. The system still opens on this page.");
+      }
+      frame.hidden = false;
+      frame.src = await entryUrl(item, currentSession);
+      welcome.hidden = true;
+      for (const node of links.querySelectorAll("button")) {
+        node.setAttribute("aria-pressed", node === button ? "true" : "false");
+      }
+    }
+
+    async function entryUrl(item, session) {
+      if (item.id === "crm") {
+        const started = await startCrm(session);
+        if (started) return started;
+      }
+      if (item.id === "mentingo") {
+        await startMentingo(session);
+      }
+      if (item.id === "clearflask") {
+        await startClearflask(session);
+      }
+      if (item.id === "sharkord") {
+        await startSharkord();
+      }
+      if (item.id === "alexandrie") {
+        const started = await startAlexandrie();
+        if (started) return started;
+      }
+      return item.path;
+    }
+
+    async function startSharkord() {
+      const response = await fetch("/sharkord/login", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identity: "admin", password: "admin", name: "admin" })
+      });
+      if (!response.ok) {
+        return;
+      }
+      const payload = await response.json();
+      if (!payload || !payload.token) {
+        return;
+      }
+      localStorage.setItem("sharkord-auto-login-token", payload.token);
+      localStorage.setItem("sharkord-auto-login", "true");
+    }
+
+    async function startCrm(session) {
+      const email = session && session.email ? session.email : "";
+      const domain = email.includes("@") ? email.split("@")[1] : "common.localhost";
+      const response = await fetch("/crm-api/api/auth/sign-in/sso", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          providerId: "keycloak",
+          domain: domain,
+          callbackURL: "http://common.localhost/crm/",
+          errorCallbackURL: "http://common.localhost/crm/sign-in"
+        })
+      });
+      const payload = await response.json().catch(function () { return {}; });
+      return payload.url || "";
+    }
+
+    async function startClearflask(session) {
+      const email = session && session.email ? session.email : "admin@common.localhost";
+      const name = email.startsWith("demo@") ? "Demo" : "Admin";
+      const headers = {
+        "Content-Type": "application/json",
+        "x-cf-solution": JSON.stringify({ version: "RECAPTCHA_V2", solution: "common-auth" })
+      };
+      const signedIn = await fetch("/clearflask/api/v1/admin/account/login", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email, password: "commonauth-admin" })
+      }).catch(function () { return null; });
+      if (!signedIn || !signedIn.ok) {
+        await fetch("/clearflask/api/v1/admin/account/signup", {
+          method: "POST",
+          credentials: "include",
+          headers,
+          body: JSON.stringify({
+            email: email,
+            name: name,
+            password: "commonauth-admin",
+            basePlanId: "growth"
+          })
+        }).catch(function () { return null; });
+        await fetch("/clearflask/api/v1/admin/account/login", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email, password: "commonauth-admin" })
+        }).catch(function () { return null; });
+      }
+    }
+
+    async function markAlexandrieSignedIn() {
+      await new Promise(function (resolve) {
+        const request = indexedDB.open("localforage");
+        request.onupgradeneeded = function () {
+          const db = request.result;
+          if (!db.objectStoreNames.contains("keyvaluepairs")) {
+            db.createObjectStore("keyvaluepairs");
+          }
+        };
+        request.onerror = function () { resolve(); };
+        request.onsuccess = function () {
+          const db = request.result;
+          if (!db.objectStoreNames.contains("keyvaluepairs")) {
+            resolve();
+            return;
+          }
+          const tx = db.transaction("keyvaluepairs", "readwrite");
+          tx.objectStore("keyvaluepairs").put(true, "isLoggedIn");
+          tx.oncomplete = function () { resolve(); };
+          tx.onerror = function () { resolve(); };
+        };
+      });
+    }
+
+    async function startAlexandrie() {
+      const body = new URLSearchParams();
+      body.set("username", "admin");
+      body.set("password", "admin");
+      const response = await fetch("/alexandrie-api/api/auth", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: body.toString()
+      }).catch(function () { return null; });
+      if (!response || !response.ok) {
+        return "";
+      }
+      await markAlexandrieSignedIn();
+      return "/alexandrie/dashboard";
+    }
+
+    async function startMentingo(session) {
+      const email = session && session.email ? session.email : "admin@common.localhost";
+      await fetch("/mentingo-api/api/auth/login", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email,
+          password: "commonauth-admin",
+          rememberMe: true
+        })
+      }).catch(function () { return null; });
+    }
+
+    function render(session) {
+      currentSession = session;
+      if (!session.signedIn) {
+        account.innerHTML = '<a class="button" href="/login">Sign in</a>';
+        links.hidden = true;
+        frame.hidden = true;
+        welcome.hidden = false;
+        status.textContent = "One sign-in for every system on this host.";
+        return;
+      }
+      status.textContent = "Signed in as " + session.name + ".";
+      account.innerHTML = '<a class="button secondary" href="/logout">Sign out</a>';
+      welcome.hidden = true;
+      links.hidden = false;
+      links.innerHTML = session.audiences.map(function (item) {
+        return '<button type="button" data-id="' + escapeText(item.id) + '">' + escapeText(item.label) + "</button>";
+      }).join("");
+      const byId = {};
+      session.audiences.forEach(function (item) { byId[item.id] = item; });
+      links.querySelectorAll("button").forEach(function (button) {
+        button.addEventListener("click", function () {
+          openSystem(byId[button.getAttribute("data-id")], button);
+        });
+      });
+    }
+
+    const failed = new URLSearchParams(location.search).get("sign_in") === "failed";
+    if (failed) {
+      showNotice("Sign-in did not finish. Try again.");
+    }
+
+    fetch("/session")
+      .then(function (response) { return response.json(); })
+      .then(render)
+      .catch(function () { showNotice("The sign-in service is not answering."); });
+  </script>
+</body>
+</html>
